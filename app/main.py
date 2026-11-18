@@ -44,6 +44,7 @@ def create_app():
     def archive(run_id):
         from app.archive import build_archive
         run=store.get(run_id)
+        if not run["stages"][-1]["metrics"].get("ready"): raise DomainError("UNSEALED","接驳归属未核清，批次未封存，不能导出证据",409)
         return application.response_class(build_archive(run),mimetype="text/csv",headers={"Content-Disposition":'attachment; filename="evidence.csv"'})
     for index,(slug,title) in enumerate(MODULES,1):
         module=importlib.import_module(f"app.modules.m{index}_{slug}.handler")

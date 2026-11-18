@@ -31,10 +31,16 @@
 | TRAP-11 | 混合偏移 | 落错版本 | UTC归整 | `app/values.py` | `tests/test_m3.py::test_timezone_equal` |
 | TRAP-23 | 换乘截止点 | 重复优惠 | 截止点排除 | `app/modules/m5_discounts/rules.py` | `tests/test_m5.py::test_exact_window_excluded` |
 | TRAP-25 | 票价重叠 | 随意取版 | 冲突隔离 | `app/modules/m3_fares/rules.py` | `tests/test_m3.py::test_overlap_rejected` |
+| TRAP-27 | 故障接驳补刷被当新付费行程 | 一次出行拆两段 | 核验四要素后并入原行程，继承原车次连续关系 | `app/modules/m4_journeys/rules.py` | `tests/test_shuttle.py::TestDiscount::test_merged_exempt_and_conserved` |
+| TRAP-28 | 普通车次借用故障凭证 | 凭证即免扣致少扣 | 线路或时段不符即仍需收费 | `app/modules/m4_journeys/rules.py` | `tests/test_shuttle.py::TestDetermination::test_borrowed_voucher_still_charged` |
+| TRAP-29 | 同一补刷重试 | 重复免扣 | 按（卡号,故障单）认定一次，重试隔离 | `app/modules/m4_journeys/rules.py` | `tests/test_shuttle.py::TestDetermination::test_retry_not_double_exempted` |
+| TRAP-30 | 归属未核清即封存 | 待定批次进入日结 | 未核清批次不产出封存摘要且证据导出409 | `app/modules/m7_settlement/rules.py` | `tests/test_shuttle.py::TestClearingAndSeal::test_unverified_blocks_seal` |
 
 ## 对账规则
 
 输入原始逻辑行=最终采纳来源行+隔离来源行+重复行+空白行+分段表头。派生记录用_sources保存完整来源，因此分组不丢行。业务预期合计与上游申报合计之差等于逐行差异之和。结果按输入摘要、规则版本及参数产生唯一批次，事务写入；同源重跑只复用已有批次。
+
+接驳续程在行程配对阶段唯一认定，结论字段（shuttle_status、voucher、continues_from）被优惠回算、清分对账与日结归档共同引用，不重复裁决。并入续程的补刷应扣为0、接驳免扣等于基本票价，分币守恒恒等式扩展为基本票价=实算扣费+换乘优惠+封顶优惠+接驳免扣。存在未核清补刷的批次不产出封存摘要，证据导出返回409；重试补刷隔离为SHUTTLE_RETRY，原始刷卡与故障凭证记录不丢失。
 
 ## 已知不覆盖
 
